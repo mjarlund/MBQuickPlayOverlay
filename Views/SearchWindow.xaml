@@ -1,0 +1,56 @@
+﻿<Window x:Class="MusicBeePlugin.Views.SearchWindow"
+                      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                      xmlns:vm="clr-namespace:MusicBeePlugin.ViewModels"
+                      Title="MainWindow"
+                      SizeToContent="WidthAndHeight"
+                      WindowStartupLocation="CenterScreen"
+                      ResizeMode="NoResize"
+                      WindowStyle="None"
+                      FocusManager.FocusedElement="{Binding ElementName=TextBoxSearch}"
+                      Topmost="True"
+                      AllowsTransparency="True"
+                      Background="Transparent">
+    <Window.DataContext>
+        <vm:SearchWindowViewModel/>
+    </Window.DataContext>
+    <!-- Content -->
+    <Grid Background="White">
+        <Grid.Effect>
+            <DropShadowEffect ShadowDepth="2" BlurRadius="10" RenderingBias="Quality"/>
+        </Grid.Effect>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <Label Background="#34495e" Foreground="White" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">Search for a song in your MusicBee NowPlaying list and press enter to play it.</Label>
+        <ComboBox x:Name="TextBoxSearch" 
+                  IsEditable="True" 
+                  IsTextSearchEnabled="True" 
+                  TextSearch.TextPath="TrackTitle" 
+                  ItemsSource="{Binding SearchList, UpdateSourceTrigger=PropertyChanged}" 
+                  SelectedItem="{Binding SelectedSong}"
+                  Text="{Binding TextBoxSearch}" 
+                  Height="40" 
+                  MaxWidth="500"
+                  FontSize="20"
+                  VerticalContentAlignment="Center"
+                  Grid.Row="1"
+                  >
+            <ComboBox.InputBindings>
+                <KeyBinding Key="Enter" Command="{Binding PlaySelectedSongCommand}"/>
+                <KeyBinding Key="Down" Command="{Binding GetNextSearchResult}"/>
+            </ComboBox.InputBindings>
+
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding TrackTitle}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </Grid>
+
+</Window>
