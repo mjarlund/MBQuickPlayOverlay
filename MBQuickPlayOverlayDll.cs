@@ -3,25 +3,25 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Windows.Interop;
+using System.ComponentModel;
 using MusicBeePlugin.Views;
+using MusicBeePlugin.ViewModels;
+using System.Linq;
+using System.Collections.ObjectModel;
+using MusicBeePlugin.Models;
 
 namespace MusicBeePlugin
 {
-    public static class ApiInterface
-    {
-        public static Plugin.MusicBeeApiInterface mbApiInterface { get; set; }
-    }
-
     public partial class Plugin
     {
         private MusicBeeApiInterface mbApiInterface;
         private PluginInfo about = new PluginInfo();
+        private SearchWindowViewModel swViewModel = new SearchWindowViewModel();
 
         public PluginInfo Initialise(IntPtr apiInterfacePtr)
         {
             mbApiInterface = new MusicBeeApiInterface();
             mbApiInterface.Initialise(apiInterfacePtr);
-            ApiInterface.mbApiInterface = this.mbApiInterface;
             about.PluginInfoVersion = PluginInfoVersion;
             about.Name = "QuickPlay Overlay";
             about.Description = "Bind to a global hotkey to quickly search for and play tracks in your NowPlayingList without having to open the MusicBee UI.";
@@ -30,7 +30,7 @@ namespace MusicBeePlugin
             about.Type = PluginType.General;
             about.VersionMajor = 1;  // your plugin version
             about.VersionMinor = 0;
-            about.Revision = 1;
+            about.Revision = 3;
             about.MinInterfaceVersion = MinInterfaceVersion;
             about.MinApiRevision = MinApiRevision;
             about.ReceiveNotifications = (ReceiveNotificationFlags.PlayerEvents | ReceiveNotificationFlags.TagEvents);
@@ -38,6 +38,16 @@ namespace MusicBeePlugin
             createMenuItem();
 
             return about;
+        }
+
+        private void InitialisePlugin()
+        {
+            swViewModel.NowPlayingList = GetNowPlayingList();
+            swViewModel.PlaySelectedSong = new RelayCommand(x =>
+            {
+                PlayNow(swViewModel.SelectedSong);
+            }, x => swViewModel.SelectedSong != null);
+
         }
 
         private void createMenuItem()
@@ -48,6 +58,7 @@ namespace MusicBeePlugin
         private void openSearchWindow(object sender, EventArgs args)
         {
             SearchWindow window = new SearchWindow();
+            window.DataContext = swViewModel;
             WindowInteropHelper helper = new WindowInteropHelper(window);
             ElementHost.EnableModelessKeyboardInterop(window);
             
@@ -87,8 +98,6 @@ namespace MusicBeePlugin
         // its up to you to figure out whether anything has changed and needs updating
         public void SaveSettings()
         {
-            // save any persistent settings in a sub-folder of this path
-            string dataPath = mbApiInterface.Setting_GetPersistentStoragePath();
         }
 
         // MusicBee is closing the plugin (plugin is being disabled by user or MusicBee is shutting down)
@@ -110,44 +119,37 @@ namespace MusicBeePlugin
             {
                 case NotificationType.PluginStartup:
                     // perform startup initialisation
-                    switch (mbApiInterface.Player_GetPlayState())
-                    {
-                        case PlayState.Playing:
-                        case PlayState.Paused:
-                            // ...
-                            break;
-                    }
+                    InitialisePlugin();
                     break;
-                case NotificationType.TrackChanged:
-                    string artist = mbApiInterface.NowPlaying_GetFileTag(MetaDataType.Artist);
-                    // ...
+                case NotificationType.NowPlayingListChanged:
+                    swViewModel.NowPlayingList = GetNowPlayingList();
                     break;
             }
-            
         }
 
-        // return an array of lyric or artwork provider names this plugin supports
-        // the providers will be iterated through one by one and passed to the RetrieveLyrics/ RetrieveArtwork function in order set by the user in the MusicBee Tags(2) preferences screen until a match is found
-        public string[] GetProviders()
+        private ObservableCollection<Song> GetNowPlayingList()
         {
-            return null;
+            ObservableCollection<Song> instance = new ObservableCollection<Song>();
+
+            string[] fileUrls = new string[0];
+            mbApiInterface.NowPlayingList_QueryFilesEx(null, ref fileUrls);
+
+            foreach (var url in fileUrls)
+            {
+                Song song = new Song();
+                song.Url = url;
+                song.Name = mbApiInterface.Library_GetFileTag(url, MetaDataType.TrackTitle);
+                instance.Add(song);
+            }
+
+            return new ObservableCollection<Song>(instance.OrderBy(x => x.Name));
         }
 
-        // return lyrics for the requested artist/title from the requested provider
-        // only required if PluginType = LyricsRetrieval
-        // return null if no lyrics are found
-        public string RetrieveLyrics(string sourceFileUrl, string artist, string trackTitle, string album, bool synchronisedPreferred, string provider)
+        private void PlayNow(Song target)
         {
-            return null;
+            NowPlayingList_FileActionDelegate FileAction = mbApiInterface.NowPlayingList_PlayNow;
+            FileAction(target.Url);
         }
 
-        // return Base64 string representation of the artwork binary data from the requested provider
-        // only required if PluginType = ArtworkRetrieval
-        // return null if no artwork is found
-        public string RetrieveArtwork(string sourceFileUrl, string albumArtist, string album, string provider)
-        {
-            //Return Convert.ToBase64String(artworkBinaryData)
-            return null;
-        }
-   }
+    }
 }
