@@ -1,7 +1,7 @@
 # MusicBee QuickPlay Overlay
 This is a plugin for MusicBee that allows the user to search for a song in their Now Playing list, by name, and play it, without having to open the MusicBee UI. Allowing the user to stay focused on their task at hand, whilst still being able to control what music is being played.
 
-![](https://raw.githubusercontent.com/mjarlund/MusicBee-QuickPlay-Overlay/e0abd5bba213cc63b610943d45d0bdd1567f0328/demonstration.gif)
+![](https://github.com/mjarlund/MBQuickPlayOverlay/blob/master/demonstration.gif)
 
 
 ## Getting started
