@@ -138,7 +138,11 @@ namespace MusicBeePlugin
             {
                 Song song = new Song();
                 song.Url = url;
-                song.Name = mbApiInterface.Library_GetFileTag(url, MetaDataType.TrackTitle);
+
+                string Lov = "";
+                if (mbApiInterface.Library_GetFileTag(url, MetaDataType.RatingLove) == "L")
+                    Lov = " ♥";
+                song.Name = mbApiInterface.Library_GetFileTag(url, MetaDataType.TrackTitle) + " - " + mbApiInterface.Library_GetFileTag(url, MetaDataType.AlbumArtist) + Lov;
                 instance.Add(song);
             }
 
