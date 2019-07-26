@@ -64,14 +64,25 @@ namespace MusicBeePlugin
             
             window.Show();
             window.Activate();
-            window.Deactivated += closeSearchWindow;
+
+            //window.Deactivated += closeSearchWindow;
+            window.PreviewKeyUp += closeWindow;
         }
 
-        private void closeSearchWindow(object sender, EventArgs e)
+        private void closeWindow(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape || e.Key == System.Windows.Input.Key.Enter)
+            {
+                var window = sender as SearchWindow;
+                window.Close();
+            }
+        }
+
+        /*private void closeSearchWindow(object sender, EventArgs e)
         {
             var window = sender as SearchWindow;
             window.Close();
-        }
+        }*/
 
         public bool Configure(IntPtr panelHandle)
         {
