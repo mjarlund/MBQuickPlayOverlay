@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Windows.Interop;
-using System.ComponentModel;
 using MusicBeePlugin.Views;
 using MusicBeePlugin.ViewModels;
 using System.Linq;
@@ -29,7 +28,7 @@ namespace MusicBeePlugin
             about.TargetApplication = "";   // current only applies to artwork, lyrics or instant messenger name that appears in the provider drop down selector or target Instant Messenger
             about.Type = PluginType.General;
             about.VersionMajor = 1;  // your plugin version
-            about.VersionMinor = 0;
+            about.VersionMinor = 1;
             about.Revision = 3;
             about.MinInterfaceVersion = MinInterfaceVersion;
             about.MinApiRevision = MinApiRevision;
@@ -65,24 +64,36 @@ namespace MusicBeePlugin
             window.Show();
             window.Activate();
 
-            //window.Deactivated += closeSearchWindow;
-            window.PreviewKeyUp += closeWindow;
+            window.PreviewKeyUp += windowPreviewKeyUp;
+            window.Deactivated += windowDeactivated;
+            window.Closing += windowClosing;
+
         }
 
-        private void closeWindow(object sender, System.Windows.Input.KeyEventArgs e)
+        private void windowPreviewKeyUp(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Escape || e.Key == System.Windows.Input.Key.Enter)
+            switch (e.Key)
             {
-                var window = sender as SearchWindow;
-                window.Close();
+                case System.Windows.Input.Key.Escape:
+                case System.Windows.Input.Key.Enter:
+                    (sender as SearchWindow).Close();
+                    break;
             }
         }
 
-        /*private void closeSearchWindow(object sender, EventArgs e)
+        private void windowDeactivated(object sender, EventArgs e)
+        {
+            (sender as SearchWindow).Close();
+        }
+
+        private void windowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             var window = sender as SearchWindow;
-            window.Close();
-        }*/
+            window.Deactivated -= windowDeactivated;
+            window.PreviewKeyUp -= windowPreviewKeyUp;
+        }
+
+
 
         public bool Configure(IntPtr panelHandle)
         {
@@ -133,6 +144,9 @@ namespace MusicBeePlugin
                     InitialisePlugin();
                     break;
                 case NotificationType.NowPlayingListChanged:
+                case NotificationType.FileDeleted:
+                case NotificationType.RatingChanged:
+                case NotificationType.TagsChanged:
                     swViewModel.NowPlayingList = GetNowPlayingList();
                     break;
             }
@@ -147,13 +161,16 @@ namespace MusicBeePlugin
 
             foreach (var url in fileUrls)
             {
-                Song song = new Song();
-                song.Url = url;
+                Song song = new Song
+                {
+                    Url = url
+                };
 
-                string Lov = "";
-                if (mbApiInterface.Library_GetFileTag(url, MetaDataType.RatingLove) == "L")
-                    Lov = " ♥";
-                song.Name = mbApiInterface.Library_GetFileTag(url, MetaDataType.TrackTitle) + " - " + mbApiInterface.Library_GetFileTag(url, MetaDataType.AlbumArtist) + Lov;
+                song.Name = 
+                    mbApiInterface.Library_GetFileTag(url, MetaDataType.TrackTitle) + 
+                    " - " + 
+                    mbApiInterface.Library_GetFileTag(url, MetaDataType.AlbumArtist) +
+                    (mbApiInterface.Library_GetFileTag(url, MetaDataType.RatingLove) == "L" ? " ♥" : "");
                 instance.Add(song);
             }
 
